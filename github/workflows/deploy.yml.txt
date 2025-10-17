@@ -1,0 +1,32 @@
+name: Deploy Flask App to EC2
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Build Docker image
+      run: docker build -t demo-flask .
+
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          docker stop demo-flask || true
+          docker rm demo-flask || true
+          cd /home/ubuntu
+          rm -rf demo-flask-app
+          git clone https://github.com/<your-username>/flask-cicd-demo.git demo-flask-app
+          cd demo-flask-app
+          docker build -t demo-flask .
+          docker run -d -p 80:5000 demo-flask
